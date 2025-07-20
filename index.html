@@ -352,6 +352,16 @@
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Exit Price (optional)</label>
                                 <input type="text" id="exitPrice" placeholder="2690.72" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Trade Entered DateTime</label>
+                                <input type="datetime-local" id="entryDateTime" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Trade Exited DateTime (optional)</label>
+                                <input type="datetime-local" id="exitDateTime" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
                         </div>
 
                         <!-- Trading Calculations Display -->
@@ -392,6 +402,10 @@
                                 <div id="actual-pnl-container" class="hidden">
                                     <div class="font-medium" id="calc-actual-pnl">$0</div>
                                     <div class="text-xs text-gray-500">Actual P&L</div>
+                                </div>
+                                <div id="duration-container" class="hidden">
+                                    <div class="font-medium" id="calc-duration">0h 0m</div>
+                                    <div class="text-xs text-gray-500">Duration</div>
                                 </div>
                             </div>
                         </div>
@@ -913,6 +927,8 @@
                 takeProfit: parseFloat(document.getElementById('takeProfit').value),
                 positionSize: parseFloat(document.getElementById('positionSize').value),
                 exitPrice: exitPrice,
+                entryDateTime: document.getElementById('entryDateTime').value || new Date().toISOString(),
+                exitDateTime: document.getElementById('exitDateTime').value || null,
                 confidence: parseInt(document.getElementById('confidence').value),
                 notes: document.getElementById('notes').value,
                 timestamp: new Date().toISOString(),
@@ -920,13 +936,14 @@
                 pnl: pnl,
                 outcome: outcome,
                 qualityScore: qualityScore.total,
-                qualityComponents: qualityScore.components
+                qualityComponents: qualityScore.components,
+                duration: calculations.duration
             };
 
             trades.push(newTrade);
 
             // Reset form
-            ['symbol', 'entryPrice', 'stopLoss', 'takeProfit', 'positionSize', 'exitPrice', 'notes'].forEach(id => {
+            ['symbol', 'entryPrice', 'stopLoss', 'takeProfit', 'positionSize', 'exitPrice', 'entryDateTime', 'exitDateTime', 'notes'].forEach(id => {
                 document.getElementById(id).value = '';
             });
             document.getElementById('confidence').value = '3';
@@ -1112,7 +1129,7 @@
                 'Date','Symbol','Side','Entry Price','Exit Price',
                 'Stop Loss','Take Profit','Position Size',
                 'Points','P&L','Outcome','Confidence',
-                'Quality Score','Notes'
+                'Quality Score','Entry DateTime','Exit DateTime','Duration (minutes)','Notes'
             ];
 
             // Build CSV rows
@@ -1130,6 +1147,9 @@
                 trade.outcome,
                 trade.confidence || '',
                 trade.qualityScore || '',
+                trade.entryDateTime ? new Date(trade.entryDateTime).toLocaleString() : '',
+                trade.exitDateTime ? new Date(trade.exitDateTime).toLocaleString() : '',
+                trade.duration ? trade.duration.totalMinutes : '',
                 `"${(trade.notes || '').replace(/"/g, '""')}"`
             ].join(','));
 
@@ -1179,7 +1199,7 @@
                 return;
             }
 
-            const headers = ['Date', 'Time', 'Symbol', 'Side', 'Entry Price', 'Exit Price', 'Stop Loss', 'Take Profit', 'Position Size', 'Points', 'P&L', 'Outcome', 'Confidence', 'Quality Score', 'Notes'];
+            const headers = ['Date', 'Time', 'Symbol', 'Side', 'Entry Price', 'Exit Price', 'Stop Loss', 'Take Profit', 'Position Size', 'Points', 'P&L', 'Outcome', 'Confidence', 'Quality Score', 'Entry DateTime', 'Exit DateTime', 'Duration (minutes)', 'Notes'];
             
             const sheetsData = trades.map(trade => {
                 const date = new Date(trade.timestamp);
@@ -1198,6 +1218,9 @@
                     trade.outcome.toUpperCase(),
                     trade.confidence || '',
                     trade.qualityScore || '',
+                    trade.entryDateTime ? new Date(trade.entryDateTime).toLocaleString() : '',
+                    trade.exitDateTime ? new Date(trade.exitDateTime).toLocaleString() : '',
+                    trade.duration ? trade.duration.totalMinutes : '',
                     trade.notes || ''
                 ];
             });
@@ -1349,7 +1372,7 @@
             }
 
             // Trade form validation
-            const tradeInputs = ['symbol', 'entryPrice', 'stopLoss', 'takeProfit', 'positionSize', 'exitPrice'];
+            const tradeInputs = ['symbol', 'entryPrice', 'stopLoss', 'takeProfit', 'positionSize', 'exitPrice', 'entryDateTime', 'exitDateTime'];
             tradeInputs.forEach(inputId => {
                 const input = document.getElementById(inputId);
                 if (input) {
