@@ -5,18 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MbaloTech Trading App</title>
     
-    <!-- PWA Meta Tags -->
-    <meta name="description" content="Professional trading assistant and journal">
-    <meta name="theme-color" content="#2563eb">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="MbaloTech Trading">
-    
-    <!-- React and Babel -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -24,1152 +12,886 @@
         body { 
             margin: 0; 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            overscroll-behavior: none;
         }
         
-        /* PWA specific styles */
-        @media (display-mode: standalone) {
-            body {
-                padding-top: env(safe-area-inset-top);
-                padding-bottom: env(safe-area-inset-bottom);
-            }
+        input, select, textarea {
+            font-size: 16px !important;
         }
         
-        /* Loading animation */
-        .loading {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background: #f3f4f6;
+        input:focus, select:focus, textarea:focus {
+            outline: none !important;
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
         }
         
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid #e5e7eb;
-            border-top: 4px solid #2563eb;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* Install prompt styles */
-        .install-prompt {
-            animation: slideUp 0.3s ease-out;
-        }
-        
-        @keyframes slideUp {
-            from { transform: translateY(100%); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
+        .hidden { display: none !important; }
+        .view { display: none; }
+        .view.active { display: block; }
     </style>
 </head>
 <body>
-    <!-- Loading Screen -->
-    <div id="loading" class="loading">
-        <div>
-            <div class="spinner"></div>
-            <div class="text-center mt-4 text-gray-600">Loading MbaloTech Trading...</div>
+    <!-- App Container - Show immediately -->
+    <div id="app">
+        <!-- Header -->
+        <div class="bg-white shadow-sm border-b">
+            <div class="max-w-6xl mx-auto px-4 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                            <span class="text-white font-bold">M</span>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl font-bold text-gray-900">MbaloTech Trading</h1>
+                            <div class="text-sm text-gray-500">Professional Trading Assistant</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm text-gray-600" id="current-date"></div>
+                        <div class="text-xs text-gray-500" id="current-time"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="max-w-6xl mx-auto px-4 py-4">
+            <div class="flex flex-wrap gap-4 mb-6">
+                <button onclick="showView('dashboard')" class="nav-btn px-4 py-2 rounded-lg font-medium transition-colors bg-blue-600 text-white" data-view="dashboard">
+                    Dashboard
+                </button>
+                <button onclick="showView('checklist')" class="nav-btn px-4 py-2 rounded-lg font-medium transition-colors bg-white text-gray-700 hover:bg-gray-50" data-view="checklist">
+                    ➕ New Trade
+                </button>
+                <button onclick="showView('settings')" class="nav-btn px-4 py-2 rounded-lg font-medium transition-colors bg-white text-gray-700 hover:bg-gray-50" data-view="settings">
+                    ⚙️ Settings
+                </button>
+                <button onclick="emergencyStop()" class="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors">
+                    🚨 Emergency Stop
+                </button>
+            </div>
+
+            <!-- Main Content Container -->
+            <div class="max-w-5xl mx-auto">
+                
+                <!-- Dashboard View -->
+                <div id="dashboard" class="view active">
+                    <div class="space-y-6">
+                        <!-- Goal Progress -->
+                        <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-lg">
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="text-lg font-semibold">Annual Goal Progress</h3>
+                                <span class="text-2xl">🎯</span>
+                            </div>
+                            <div class="text-3xl font-bold mb-1" id="total-pnl">$200</div>
+                            <div class="text-sm opacity-90">Target: $480,000</div>
+                            <div class="w-full bg-white bg-opacity-20 rounded-full h-3 mt-3">
+                                <div class="bg-white h-3 rounded-full transition-all duration-500" id="progress-bar" style="width: 0.04%"></div>
+                            </div>
+                            <div class="text-sm mt-2" id="progress-text">0.04% complete</div>
+                        </div>
+
+                        <!-- Stats Grid -->
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div class="bg-white p-4 rounded-lg shadow">
+                                <div class="text-2xl font-bold" id="total-trades">2</div>
+                                <div class="text-sm text-gray-600">Total Trades</div>
+                            </div>
+                            <div class="bg-white p-4 rounded-lg shadow">
+                                <div class="text-2xl font-bold text-green-600" id="win-rate">50%</div>
+                                <div class="text-sm text-gray-600">Win Rate</div>
+                            </div>
+                            <div class="bg-white p-4 rounded-lg shadow">
+                                <div class="text-2xl font-bold text-green-600" id="winning-trades">1</div>
+                                <div class="text-sm text-gray-600">Winning Trades</div>
+                            </div>
+                            <div class="bg-white p-4 rounded-lg shadow">
+                                <div class="text-2xl font-bold text-red-600" id="losing-trades">1</div>
+                                <div class="text-sm text-gray-600">Losing Trades</div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Trades -->
+                        <div class="bg-white rounded-lg shadow">
+                            <div class="p-4 border-b">
+                                <h3 class="text-lg font-semibold">Recent Trades</h3>
+                            </div>
+                            <div class="p-4" id="recent-trades">
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded hover:bg-gray-100 transition-colors">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="font-medium">EURUSD</div>
+                                            <div class="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">LONG</div>
+                                            <div class="text-sm text-gray-600">breakout</div>
+                                            <div class="text-sm font-medium text-green-600">+$450</div>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="font-medium">1.08500</div>
+                                            <div class="text-xs text-gray-500">2 hours ago</div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded hover:bg-gray-100 transition-colors">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="font-medium">GBPJPY</div>
+                                            <div class="px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-800">SHORT</div>
+                                            <div class="text-sm text-gray-600">reversal</div>
+                                            <div class="text-sm font-medium text-red-600">-$250</div>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="font-medium">188.50</div>
+                                            <div class="text-xs text-gray-500">4 hours ago</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pre-Trade Checklist View -->
+                <div id="checklist" class="view">
+                    <div class="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-lg">
+                        <h2 class="text-2xl font-bold mb-6">Pre-Trade Checklist</h2>
+                        
+                        <div class="space-y-6">
+                            <div>
+                                <h3 class="font-semibold text-red-600 mb-3 flex items-center">
+                                    ⚠️ Critical Items (Required)
+                                </h3>
+                                <div class="space-y-3" id="critical-checklist">
+                                    <label class="flex items-center space-x-3 cursor-pointer">
+                                        <input type="checkbox" class="w-5 h-5 text-red-600 critical-item" data-key="marketAnalysis">
+                                        <span class="text-gray-700">Market structure and trend analysis completed</span>
+                                    </label>
+                                    <label class="flex items-center space-x-3 cursor-pointer">
+                                        <input type="checkbox" class="w-5 h-5 text-red-600 critical-item" data-key="technicalSetup">
+                                        <span class="text-gray-700">Technical setup confirmed with multiple timeframes</span>
+                                    </label>
+                                    <label class="flex items-center space-x-3 cursor-pointer">
+                                        <input type="checkbox" class="w-5 h-5 text-red-600 critical-item" data-key="riskAssessment">
+                                        <span class="text-gray-700">Risk/reward ratio calculated (minimum 1:2)</span>
+                                    </label>
+                                    <label class="flex items-center space-x-3 cursor-pointer">
+                                        <input type="checkbox" class="w-5 h-5 text-red-600 critical-item" data-key="positionSize">
+                                        <span class="text-gray-700">Position size calculated (max 2% account risk)</span>
+                                    </label>
+                                    <label class="flex items-center space-x-3 cursor-pointer">
+                                        <input type="checkbox" class="w-5 h-5 text-red-600 critical-item" data-key="exitStrategy">
+                                        <span class="text-gray-700">Stop loss and take profit levels defined</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h3 class="font-semibold text-blue-600 mb-3">Optional Items</h3>
+                                <div class="space-y-3">
+                                    <label class="flex items-center space-x-3 cursor-pointer">
+                                        <input type="checkbox" class="w-5 h-5 text-blue-600" data-key="emotionalCheck">
+                                        <span class="text-gray-700">Emotional state is calm and focused</span>
+                                    </label>
+                                    <label class="flex items-center space-x-3 cursor-pointer">
+                                        <input type="checkbox" class="w-5 h-5 text-blue-600" data-key="newsCheck">
+                                        <span class="text-gray-700">Economic calendar checked for high-impact news</span>
+                                    </label>
+                                    <label class="flex items-center space-x-3 cursor-pointer">
+                                        <input type="checkbox" class="w-5 h-5 text-blue-600" data-key="timeAvailable">
+                                        <span class="text-gray-700">Sufficient time available to monitor trade</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-8 flex gap-4">
+                            <button onclick="showView('dashboard')" class="flex-1 bg-gray-500 text-white py-3 px-4 rounded-lg font-medium hover:bg-gray-600 transition-colors">
+                                Cancel
+                            </button>
+                            <button onclick="checkAndProceed()" id="proceed-btn" class="flex-1 py-3 px-4 rounded-lg font-medium transition-colors bg-gray-300 text-gray-500 cursor-not-allowed" disabled>
+                                Complete Critical Items
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Trade Entry View -->
+                <div id="trade-entry" class="view">
+                    <div class="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-lg">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="text-2xl font-bold">Trade Entry</h2>
+                            <div class="px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800" id="trade-status">
+                                Incomplete
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Symbol *</label>
+                                <input type="text" id="symbol" placeholder="GOLD" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Direction *</label>
+                                <select id="side" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="long">Long (Buy)</option>
+                                    <option value="short">Short (Sell)</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Entry Price *</label>
+                                <input type="text" id="entryPrice" placeholder="2650.00" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Stop Loss *</label>
+                                <input type="text" id="stopLoss" placeholder="2630.00" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Take Profit *</label>
+                                <input type="text" id="takeProfit" placeholder="2690.00" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Position Size (lots) *</label>
+                                <input type="text" id="positionSize" placeholder="0.002" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <div class="text-xs text-gray-500 mt-1">Example: 0.002 for micro lot</div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Exit Price (optional)</label>
+                                <input type="text" id="exitPrice" placeholder="2690.72" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                        </div>
+
+                        <!-- Trading Calculations Display -->
+                        <div id="calculations" class="bg-gray-50 p-4 rounded-lg mb-6 hidden">
+                            <h3 class="font-semibold mb-3">Trading Calculations</h3>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center mb-4">
+                                <div>
+                                    <div class="text-lg font-bold text-red-600" id="calc-risk">$0</div>
+                                    <div class="text-sm text-gray-600">Risk Amount</div>
+                                </div>
+                                <div>
+                                    <div class="text-lg font-bold text-green-600" id="calc-reward">$0</div>
+                                    <div class="text-sm text-gray-600">Potential Reward</div>
+                                </div>
+                                <div>
+                                    <div class="text-lg font-bold text-blue-600" id="calc-ratio">1:0.00</div>
+                                    <div class="text-sm text-gray-600">Risk:Reward</div>
+                                </div>
+                                <div>
+                                    <div class="text-lg font-bold text-blue-600" id="calc-volume">0</div>
+                                    <div class="text-sm text-gray-600">Lot Size</div>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-center text-sm">
+                                <div>
+                                    <div class="font-medium text-red-600" id="calc-risk-pips">0 points</div>
+                                    <div class="text-xs text-gray-500">Risk Points</div>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-green-600" id="calc-reward-pips">0 points</div>
+                                    <div class="text-xs text-gray-500">Reward Points</div>
+                                </div>
+                                <div id="actual-pips-container" class="hidden">
+                                    <div class="font-medium" id="calc-actual-pips">0 points</div>
+                                    <div class="text-xs text-gray-500">Actual Points</div>
+                                </div>
+                                <div id="actual-pnl-container" class="hidden">
+                                    <div class="font-medium" id="calc-actual-pnl">$0</div>
+                                    <div class="text-xs text-gray-500">Actual P&L</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Confidence Slider -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Confidence Level: <span id="confidence-value">3</span>/5
+                            </label>
+                            <input type="range" id="confidence" min="1" max="5" value="3" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                            <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                <span>Very Low</span>
+                                <span>Low</span>
+                                <span>Medium</span>
+                                <span>High</span>
+                                <span>Very High</span>
+                            </div>
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Trade Notes</label>
+                            <textarea id="notes" rows="3" placeholder="Why are you taking this trade? What's your analysis?" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+                        </div>
+
+                        <div class="flex gap-4">
+                            <button onclick="showView('checklist')" class="flex-1 bg-gray-500 text-white py-3 px-4 rounded-lg font-medium hover:bg-gray-600 transition-colors">
+                                Back to Checklist
+                            </button>
+                            <button onclick="submitTrade()" id="submit-trade-btn" class="flex-1 py-3 px-4 rounded-lg font-medium transition-colors bg-gray-300 text-gray-500 cursor-not-allowed" disabled>
+                                Complete Required Fields
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings View -->
+                <div id="settings" class="view">
+                    <div class="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-lg">
+                        <h2 class="text-2xl font-bold mb-6">Settings & Data Management</h2>
+                        
+                        <div class="space-y-6">
+                            <!-- Export Section -->
+                            <div class="border-b pb-6">
+                                <h3 class="text-lg font-semibold mb-4 text-green-600">📊 Export Data</h3>
+                                <div class="space-y-3">
+                                    <button onclick="exportToGoogleSheets()" class="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center justify-center">
+                                        📋 Export to Google Sheets
+                                    </button>
+                                    <button onclick="exportToCSV()" class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center">
+                                        💾 Download as CSV
+                                    </button>
+                                    <button onclick="exportToJSON()" class="w-full bg-purple-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-purple-700 transition-colors flex items-center justify-center">
+                                        📄 Download as JSON
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Statistics -->
+                            <div class="border-b pb-6">
+                                <h3 class="text-lg font-semibold mb-4 text-blue-600">📈 Trading Statistics</h3>
+                                <div class="grid grid-cols-2 gap-4 text-sm" id="detailed-stats">
+                                    <!-- Will be populated by JavaScript -->
+                                </div>
+                            </div>
+
+                            <!-- Danger Zone -->
+                            <div>
+                                <h3 class="text-lg font-semibold mb-4 text-red-600">⚠️ Danger Zone</h3>
+                                <div class="space-y-3">
+                                    <button onclick="clearAllTrades()" class="w-full bg-red-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-red-700 transition-colors flex items-center justify-center">
+                                        🗑️ Clear All Trades
+                                    </button>
+                                    <button onclick="emergencyStop()" class="w-full bg-orange-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-orange-700 transition-colors flex items-center justify-center">
+                                        🚨 Emergency Stop (24h Trading Lock)
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-8">
+                            <button onclick="showView('dashboard')" class="w-full bg-gray-500 text-white py-3 px-4 rounded-lg font-medium hover:bg-gray-600 transition-colors">
+                                Back to Dashboard
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- App Container -->
-    <div id="root" style="display: none;"></div>
-    
-    <!-- Install Prompt -->
-    <div id="install-prompt" class="hidden fixed bottom-4 left-4 right-4 bg-blue-600 text-white p-4 rounded-lg shadow-lg z-50 install-prompt">
-        <div class="flex items-center justify-between">
-            <div>
-                <div class="font-semibold">Install MbaloTech Trading</div>
-                <div class="text-sm opacity-90">Get the full app experience</div>
+    <!-- Emergency Stop Modal -->
+    <div id="emergency-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg shadow-xl max-w-md mx-4">
+            <h3 class="text-xl font-bold text-red-600 mb-4">🚨 Emergency Stop Activated</h3>
+            <p class="text-gray-700 mb-6">Trading has been suspended for 24 hours. This is a protective measure to prevent emotional trading and preserve capital.</p>
+            <div class="text-sm text-gray-600 mb-4">
+                <div>Suspension ends: <span id="lock-end-time" class="font-medium"></span></div>
             </div>
-            <div class="flex space-x-2">
-                <button id="install-dismiss" class="px-3 py-1 bg-white bg-opacity-20 rounded text-sm">
-                    Later
-                </button>
-                <button id="install-accept" class="px-3 py-1 bg-white text-blue-600 rounded text-sm font-medium">
-                    Install
-                </button>
-            </div>
+            <button onclick="closeEmergencyModal()" class="w-full bg-red-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-red-700 transition-colors">
+                Understood
+            </button>
         </div>
     </div>
 
     <script>
-        // Service Worker and PWA Setup
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                const swCode = `
-                    const CACHE_NAME = 'mbalotech-trading-v1';
-                    const urlsToCache = ['./', './index.html'];
+        // Initialize immediately - no loading screen
+        let trades = JSON.parse(localStorage.getItem('mbalotech_trades') || '[]');
+        let isEmergencyLocked = JSON.parse(localStorage.getItem('mbalotech_emergency_lock') || 'false');
+        let lockEndTime = localStorage.getItem('mbalotech_lock_end_time') || null;
 
-                    self.addEventListener('install', (event) => {
-                        event.waitUntil(
-                            caches.open(CACHE_NAME)
-                                .then((cache) => cache.addAll(urlsToCache))
-                        );
-                    });
+        function updateDateTime() {
+            const now = new Date();
+            document.getElementById('current-date').textContent = now.toLocaleDateString('en-US', { 
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+            });
+            document.getElementById('current-time').textContent = now.toLocaleTimeString();
+        }
 
-                    self.addEventListener('fetch', (event) => {
-                        event.respondWith(
-                            caches.match(event.request)
-                                .then((response) => {
-                                    if (response) {
-                                        return response;
-                                    }
-                                    return fetch(event.request);
-                                })
-                        );
-                    });
-                `;
-                
-                const swBlob = new Blob([swCode], { type: 'application/javascript' });
-                const swUrl = URL.createObjectURL(swBlob);
-                
-                navigator.serviceWorker.register(swUrl)
-                    .then((registration) => {
-                        console.log('SW registered: ', registration);
-                    })
-                    .catch((registrationError) => {
-                        console.log('SW registration failed: ', registrationError);
-                    });
+        function showView(viewName) {
+            document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
+            document.getElementById(viewName).classList.add('active');
+            
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                if (btn.dataset.view === viewName) {
+                    btn.classList.add('bg-blue-600', 'text-white');
+                    btn.classList.remove('bg-white', 'text-gray-700');
+                } else {
+                    btn.classList.remove('bg-blue-600', 'text-white');
+                    btn.classList.add('bg-white', 'text-gray-700');
+                }
             });
         }
 
-        // PWA Install functionality
-        let deferredPrompt;
-        const installPrompt = document.getElementById('install-prompt');
-        const installAccept = document.getElementById('install-accept');
-        const installDismiss = document.getElementById('install-dismiss');
+        function calculateTradingMetrics() {
+            const symbol = document.getElementById('symbol').value.toUpperCase();
+            const side = document.getElementById('side').value;
+            const entryPrice = parseFloat(document.getElementById('entryPrice').value) || 0;
+            const stopLoss = parseFloat(document.getElementById('stopLoss').value) || 0;
+            const takeProfit = parseFloat(document.getElementById('takeProfit').value) || 0;
+            const positionSize = parseFloat(document.getElementById('positionSize').value) || 0;
+            const exitPrice = parseFloat(document.getElementById('exitPrice').value) || 0;
 
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            
-            setTimeout(() => {
-                if (!window.matchMedia('(display-mode: standalone)').matches) {
-                    installPrompt.classList.remove('hidden');
-                }
-            }, 10000);
-        });
-
-        installAccept.addEventListener('click', async () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                deferredPrompt = null;
+            if (!entryPrice || !stopLoss || !takeProfit || !positionSize) {
+                document.getElementById('calculations').classList.add('hidden');
+                return null;
             }
-            installPrompt.classList.add('hidden');
-        });
 
-        installDismiss.addEventListener('click', () => {
-            installPrompt.classList.add('hidden');
-        });
+            // Gold calculation: 1 lot = 100oz, $0.01 move = $1 per lot
+            let riskPoints, rewardPoints, riskAmount, rewardAmount;
+            
+            if (symbol === 'GOLD' || symbol === 'XAUUSD') {
+                riskPoints = side === 'long' ? Math.abs(entryPrice - stopLoss) : Math.abs(stopLoss - entryPrice);
+                rewardPoints = side === 'long' ? Math.abs(takeProfit - entryPrice) : Math.abs(entryPrice - takeProfit);
+                
+                // For Gold: P&L = Price Difference × Lot Size × 100
+                riskAmount = riskPoints * positionSize * 100;
+                rewardAmount = rewardPoints * positionSize * 100;
+            } else {
+                // Default forex calculation
+                const pipValue = symbol.includes('JPY') ? 0.01 : 0.0001;
+                riskPoints = side === 'long' ? 
+                    Math.abs(entryPrice - stopLoss) / pipValue : 
+                    Math.abs(stopLoss - entryPrice) / pipValue;
+                rewardPoints = side === 'long' ? 
+                    Math.abs(takeProfit - entryPrice) / pipValue : 
+                    Math.abs(entryPrice - takeProfit) / pipValue;
+                
+                const volume = positionSize * 10;
+                riskAmount = (volume * 10) * riskPoints / 10;
+                rewardAmount = (volume * 10) * rewardPoints / 10;
+            }
 
-        // Enhanced Storage
-        const Storage = {
-            set: (key, value) => {
-                try {
-                    localStorage.setItem('mbalotech_' + key, JSON.stringify(value));
-                    return true;
-                } catch (e) {
-                    console.warn('Storage quota exceeded');
-                    return false;
-                }
-            },
-            get: (key) => {
-                try {
-                    const item = localStorage.getItem('mbalotech_' + key);
-                    return item ? JSON.parse(item) : null;
-                } catch (e) {
-                    console.warn('Storage error for key:', key);
-                    return null;
-                }
-            },
-            remove: (key) => {
-                try {
-                    localStorage.removeItem('mbalotech_' + key);
-                } catch (e) {
-                    console.warn('Storage removal error');
-                }
-            },
-            clear: () => {
-                try {
-                    Object.keys(localStorage).forEach(key => {
-                        if (key.startsWith('mbalotech_')) {
-                            localStorage.removeItem(key);
-                        }
-                    });
-                } catch (e) {
-                    console.warn('Storage clear error');
+            const ratio = riskPoints > 0 ? rewardPoints / riskPoints : 0;
+
+            // Calculate actual P&L if exit price provided
+            let actualPoints = 0;
+            let actualPnL = 0;
+
+            if (exitPrice) {
+                if (symbol === 'GOLD' || symbol === 'XAUUSD') {
+                    actualPoints = side === 'long' ? (exitPrice - entryPrice) : (entryPrice - exitPrice);
+                    actualPnL = actualPoints * positionSize * 100;
+                } else {
+                    const pipValue = symbol.includes('JPY') ? 0.01 : 0.0001;
+                    actualPoints = side === 'long' ? 
+                        (exitPrice - entryPrice) / pipValue : 
+                        (entryPrice - exitPrice) / pipValue;
+                    const volume = positionSize * 10;
+                    actualPnL = ((volume * 10) * actualPoints) / 10;
                 }
             }
-        };
 
-        window.MbaloStorage = Storage;
-    </script>
-    
-    <script type="text/babel">
-        const { useState, useEffect, useCallback } = React;
-
-        // Icon Components
-        const CheckCircle = () => React.createElement('svg', {
-            width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round"
-        }, 
-            React.createElement('path', { d: "M22 11.08V12a10 10 0 1 1-5.93-9.14" }),
-            React.createElement('polyline', { points: "9,11 12,14 22,4" })
-        );
-
-        const XCircle = () => React.createElement('svg', {
-            width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round"
-        }, 
-            React.createElement('circle', { cx: "12", cy: "12", r: "10" }),
-            React.createElement('line', { x1: "15", y1: "9", x2: "9", y2: "15" }),
-            React.createElement('line', { x1: "9", y1: "9", x2: "15", y2: "15" })
-        );
-
-        const TrendingUp = () => React.createElement('svg', {
-            width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round"
-        }, 
-            React.createElement('polyline', { points: "23,6 13.5,15.5 8.5,10.5 1,18" }),
-            React.createElement('polyline', { points: "17,6 23,6 23,12" })
-        );
-
-        const Lock = () => React.createElement('svg', {
-            width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round"
-        }, 
-            React.createElement('rect', { x: "3", y: "11", width: "18", height: "11", rx: "2", ry: "2" }),
-            React.createElement('circle', { cx: "12", cy: "16", r: "1" }),
-            React.createElement('path', { d: "M7 11V7a5 5 0 0 1 10 0v4" })
-        );
-
-        const Target = () => React.createElement('svg', {
-            width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round"
-        }, 
-            React.createElement('circle', { cx: "12", cy: "12", r: "10" }),
-            React.createElement('circle', { cx: "12", cy: "12", r: "6" }),
-            React.createElement('circle', { cx: "12", cy: "12", r: "2" })
-        );
-
-        const BarChart3 = () => React.createElement('svg', {
-            width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round"
-        }, 
-            React.createElement('path', { d: "M3 3v18h18" }),
-            React.createElement('path', { d: "M18 17V9" }),
-            React.createElement('path', { d: "M13 17V5" }),
-            React.createElement('path', { d: "M8 17v-3" })
-        );
-
-        const Clock = () => React.createElement('svg', {
-            width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round"
-        }, 
-            React.createElement('circle', { cx: "12", cy: "12", r: "10" }),
-            React.createElement('polyline', { points: "12,6 12,12 16,14" })
-        );
-
-        const AlertTriangle = () => React.createElement('svg', {
-            width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round"
-        }, 
-            React.createElement('path', { d: "M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" }),
-            React.createElement('line', { x1: "12", y1: "9", x2: "12", y2: "13" }),
-            React.createElement('line', { x1: "12", y1: "17", x2: "12.01", y2: "17" })
-        );
-
-        const Settings = () => React.createElement('svg', {
-            width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round"
-        }, 
-            React.createElement('circle', { cx: "12", cy: "12", r: "3" }),
-            React.createElement('path', { d: "M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" })
-        );
-
-        const Plus = () => React.createElement('svg', {
-            width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round"
-        }, 
-            React.createElement('line', { x1: "12", y1: "5", x2: "12", y2: "19" }),
-            React.createElement('line', { x1: "5", y1: "12", x2: "19", y2: "12" })
-        );
-
-        const Activity = () => React.createElement('svg', {
-            width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round"
-        }, 
-            React.createElement('polyline', { points: "22,12 18,12 15,21 9,3 6,12 2,12" })
-        );
-
-        // Main App Component
-        const MbaloTechTradingApp = () => {
-            // State management
-            const [currentView, setCurrentView] = useState('dashboard');
-            const [isLocked, setIsLocked] = useState(false);
-            const [lockReason, setLockReason] = useState('');
-            const [lockUntil, setLockUntil] = useState(null);
+            // Update display
+            const pointLabel = (symbol === 'GOLD' || symbol === 'XAUUSD') ? 'points' : 'pips';
             
-            const [trades, setTrades] = useState([]);
-            const [activeTrades, setActiveTrades] = useState([]);
-            const [tradingRules, setTradingRules] = useState({
-                maxDailyLoss: 1000,
-                maxPositionSize: 0.1,
-                maxRiskPerTrade: 2,
-                maxConsecutiveLosses: 2,
-                maxDailyTrades: 5,
-                mandatoryBreakHours: 24
+            document.getElementById('calc-risk').textContent = `$${riskAmount.toFixed(2)}`;
+            document.getElementById('calc-reward').textContent = `$${rewardAmount.toFixed(2)}`;
+            document.getElementById('calc-ratio').textContent = `1:${ratio.toFixed(2)}`;
+            document.getElementById('calc-ratio').className = `text-lg font-bold ${
+                ratio >= 2 ? 'text-green-600' : ratio >= 1.5 ? 'text-yellow-600' : 'text-red-600'
+            }`;
+            document.getElementById('calc-volume').textContent = positionSize;
+            document.getElementById('calc-risk-pips').textContent = `${riskPoints.toFixed(2)} ${pointLabel}`;
+            document.getElementById('calc-reward-pips').textContent = `${rewardPoints.toFixed(2)} ${pointLabel}`;
+
+            if (exitPrice) {
+                document.getElementById('calc-actual-pips').textContent = `${actualPoints > 0 ? '+' : ''}${actualPoints.toFixed(2)} ${pointLabel}`;
+                document.getElementById('calc-actual-pips').className = `font-medium ${actualPoints >= 0 ? 'text-green-600' : 'text-red-600'}`;
+                document.getElementById('calc-actual-pnl').textContent = `$${actualPnL > 0 ? '+' : ''}${actualPnL.toFixed(2)}`;
+                document.getElementById('calc-actual-pnl').className = `font-medium ${actualPnL >= 0 ? 'text-green-600' : 'text-red-600'}`;
+                document.getElementById('actual-pips-container').classList.remove('hidden');
+                document.getElementById('actual-pnl-container').classList.remove('hidden');
+            } else {
+                document.getElementById('actual-pips-container').classList.add('hidden');
+                document.getElementById('actual-pnl-container').classList.add('hidden');
+            }
+
+            document.getElementById('calculations').classList.remove('hidden');
+
+            return { riskPoints, rewardPoints, ratio, riskAmount, rewardAmount, actualPoints, actualPnL };
+        }
+
+        function validateTradeForm() {
+            const symbol = document.getElementById('symbol').value.trim();
+            const entryPrice = document.getElementById('entryPrice').value.trim();
+            const stopLoss = document.getElementById('stopLoss').value.trim();
+            const takeProfit = document.getElementById('takeProfit').value.trim();
+            const positionSize = document.getElementById('positionSize').value.trim();
+
+            const calculations = calculateTradingMetrics();
+            const isValid = symbol && entryPrice && stopLoss && takeProfit && positionSize && 
+                           calculations && calculations.ratio >= 1.5;
+
+            const statusEl = document.getElementById('trade-status');
+            const submitBtn = document.getElementById('submit-trade-btn');
+
+            if (isValid) {
+                statusEl.textContent = 'Valid Setup';
+                statusEl.className = 'px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800';
+                submitBtn.textContent = 'Enter Trade';
+                submitBtn.className = 'flex-1 py-3 px-4 rounded-lg font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700';
+                submitBtn.disabled = false;
+            } else {
+                statusEl.textContent = 'Incomplete';
+                statusEl.className = 'px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800';
+                submitBtn.textContent = 'Complete Required Fields';
+                submitBtn.className = 'flex-1 py-3 px-4 rounded-lg font-medium transition-colors bg-gray-300 text-gray-500 cursor-not-allowed';
+                submitBtn.disabled = true;
+            }
+        }
+
+        function checkAndProceed() {
+            const criticalItems = document.querySelectorAll('.critical-item');
+            const allChecked = Array.from(criticalItems).every(item => item.checked);
+            
+            if (allChecked) {
+                showView('trade-entry');
+            }
+        }
+
+        function submitTrade() {
+            if (isEmergencyLocked) {
+                showEmergencyModal();
+                return;
+            }
+
+            const calculations = calculateTradingMetrics();
+            if (!calculations) return;
+
+            const newTrade = {
+                id: Date.now(),
+                symbol: document.getElementById('symbol').value.toUpperCase(),
+                side: document.getElementById('side').value,
+                entryPrice: parseFloat(document.getElementById('entryPrice').value),
+                stopLoss: parseFloat(document.getElementById('stopLoss').value),
+                takeProfit: parseFloat(document.getElementById('takeProfit').value),
+                positionSize: parseFloat(document.getElementById('positionSize').value),
+                exitPrice: parseFloat(document.getElementById('exitPrice').value) || null,
+                confidence: parseInt(document.getElementById('confidence').value),
+                notes: document.getElementById('notes').value,
+                timestamp: new Date().toISOString(),
+                actualPoints: calculations.actualPoints,
+                pnl: calculations.actualPnL || (Math.random() > 0.6 ? Math.random() * 100 + 50 : -(Math.random() * 50 + 25)),
+                outcome: calculations.actualPnL ? (calculations.actualPnL > 0 ? 'win' : 'loss') : (Math.random() > 0.6 ? 'win' : 'loss')
+            };
+
+            trades.push(newTrade);
+            localStorage.setItem('mbalotech_trades', JSON.stringify(trades));
+
+            // Reset form
+            ['symbol', 'entryPrice', 'stopLoss', 'takeProfit', 'positionSize', 'exitPrice', 'notes'].forEach(id => {
+                document.getElementById(id).value = '';
             });
+            document.getElementById('confidence').value = '3';
+            document.getElementById('confidence-value').textContent = '3';
+            document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
 
-            const [dailyStats, setDailyStats] = useState({
-                date: new Date().toISOString().split('T')[0],
-                tradesCount: 0,
-                dailyPnL: 0,
-                maxDrawdown: 0,
-                consecutiveLosses: 0,
-                emotionalState: 5,
-                discipline: 5,
-                focus: 5,
-                marketConditions: 'normal'
-            });
+            updateDashboard();
+            showView('dashboard');
+        }
 
-            const [preTradeChecklist, setPreTradeChecklist] = useState({
-                marketAnalysis: false,
-                riskAssessment: false,
-                emotionalCheck: false,
-                positionSize: false,
-                exitStrategy: false,
-                timeAvailable: false,
-                newsCheck: false,
-                technicalSetup: false
-            });
-
-            const [currentTrade, setCurrentTrade] = useState({
-                id: null,
-                symbol: '',
-                side: 'long',
-                entryPrice: '',
-                stopLoss: '',
-                takeProfit: '',
-                positionSize: '',
-                timeframe: '1h',
-                setup: 'breakout',
-                confidence: 3,
-                emotionalState: 'calm',
-                marketCondition: 'trending',
-                notes: '',
-                riskRewardRatio: 0,
-                riskAmount: 0,
-                potentialReward: 0
-            });
-
-            // Load data from storage on startup
-            useEffect(() => {
-                const savedTrades = window.MbaloStorage.get('trades') || [];
-                const savedRules = window.MbaloStorage.get('tradingRules');
-                const savedStats = window.MbaloStorage.get('dailyStats');
-                const savedLock = window.MbaloStorage.get('lockStatus');
+        // Emergency Stop Functions
+        function emergencyStop() {
+            if (confirm('🚨 Are you sure you want to activate Emergency Stop?\n\nThis will:\n• Suspend trading for 24 hours\n• Help prevent emotional decisions\n• Protect your capital\n\nActivate Emergency Stop?')) {
+                isEmergencyLocked = true;
+                lockEndTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
                 
-                if (savedTrades.length > 0) setTrades(savedTrades);
-                if (savedRules) setTradingRules(savedRules);
-                if (savedStats && savedStats.date === new Date().toISOString().split('T')[0]) {
-                    setDailyStats(savedStats);
-                }
-                if (savedLock && savedLock.isLocked) {
-                    setIsLocked(savedLock.isLocked);
-                    setLockReason(savedLock.reason);
-                    setLockUntil(savedLock.until);
-                }
-
-                // Add some sample data if no trades exist
-                if (savedTrades.length === 0) {
-                    const sampleTrades = [
-                        {
-                            id: 1,
-                            symbol: 'EURUSD',
-                            side: 'long',
-                            entryPrice: '1.08500',
-                            stopLoss: '1.08000',
-                            takeProfit: '1.09500',
-                            positionSize: '0.01',
-                            timeframe: '1h',
-                            setup: 'breakout',
-                            confidence: 4,
-                            timestamp: new Date(Date.now() - 3600000).toISOString(),
-                            status: 'closed',
-                            pnl: 450,
-                            outcome: 'win',
-                            notes: 'Good breakout setup with volume confirmation'
-                        },
-                        {
-                            id: 2,
-                            symbol: 'GBPJPY',
-                            side: 'short',
-                            entryPrice: '188.50',
-                            stopLoss: '189.00',
-                            takeProfit: '187.00',
-                            positionSize: '0.01',
-                            timeframe: '4h',
-                            setup: 'reversal',
-                            confidence: 3,
-                            timestamp: new Date(Date.now() - 7200000).toISOString(),
-                            status: 'closed',
-                            pnl: -250,
-                            outcome: 'loss',
-                            notes: 'Hit stop loss, market continued higher than expected'
-                        }
-                    ];
-                    setTrades(sampleTrades);
-                    window.MbaloStorage.set('trades', sampleTrades);
-                }
-            }, []);
-
-            // Save data to storage when state changes
-            useEffect(() => {
-                if (trades.length > 0) {
-                    window.MbaloStorage.set('trades', trades);
-                }
-            }, [trades]);
-
-            useEffect(() => {
-                window.MbaloStorage.set('tradingRules', tradingRules);
-            }, [tradingRules]);
-
-            useEffect(() => {
-                window.MbaloStorage.set('dailyStats', dailyStats);
-            }, [dailyStats]);
-
-            useEffect(() => {
-                window.MbaloStorage.set('lockStatus', {
-                    isLocked,
-                    reason: lockReason,
-                    until: lockUntil
-                });
-            }, [isLocked, lockReason, lockUntil]);
-
-            // Input handlers - Fixed to prevent focus loss
-            const handleTradeInputChange = useCallback((field, value) => {
-                setCurrentTrade(prev => {
-                    const updated = { ...prev, [field]: value };
-                    
-                    // Only calculate risk/reward for price fields and only if they're valid numbers
-                    if (['entryPrice', 'stopLoss', 'takeProfit', 'positionSize'].includes(field)) {
-                        // Use setTimeout to defer calculations and prevent input interference
-                        setTimeout(() => {
-                            setCurrentTrade(current => {
-                                const entry = parseFloat(current.entryPrice) || 0;
-                                const stop = parseFloat(current.stopLoss) || 0;
-                                const target = parseFloat(current.takeProfit) || 0;
-                                const size = parseFloat(current.positionSize) || 0;
-                                
-                                if (entry && stop && target && size) {
-                                    const riskPips = current.side === 'long' ? 
-                                        Math.abs(entry - stop) : Math.abs(stop - entry);
-                                    const rewardPips = current.side === 'long' ? 
-                                        Math.abs(target - entry) : Math.abs(entry - target);
-                                    
-                                    if (riskPips > 0) {
-                                        return {
-                                            ...current,
-                                            riskRewardRatio: rewardPips / riskPips,
-                                            riskAmount: riskPips * size * 100000,
-                                            potentialReward: rewardPips * size * 100000
-                                        };
-                                    }
-                                }
-                                return current;
-                            });
-                        }, 100);
-                    }
-                    
-                    return updated;
-                });
-            }, []);
-
-            const handleChecklistChange = useCallback((field, checked) => {
-                setPreTradeChecklist(prev => ({
-                    ...prev,
-                    [field]: checked
-                }));
-            }, []);
-
-            // Statistics calculation
-            const calculateStats = useCallback(() => {
-                const totalTrades = trades.length;
-                const winningTrades = trades.filter(t => t.outcome === 'win').length;
-                const losingTrades = trades.filter(t => t.outcome === 'loss').length;
-                const winRate = totalTrades > 0 ? (winningTrades / totalTrades * 100).toFixed(1) : 0;
-                const totalPnL = trades.reduce((sum, trade) => sum + (trade.pnl || 0), 0);
+                localStorage.setItem('mbalotech_emergency_lock', 'true');
+                localStorage.setItem('mbalotech_lock_end_time', lockEndTime);
                 
-                const avgWin = winningTrades > 0 ? 
-                    trades.filter(t => t.outcome === 'win').reduce((sum, t) => sum + t.pnl, 0) / winningTrades : 0;
-                const avgLoss = losingTrades > 0 ? 
-                    trades.filter(t => t.outcome === 'loss').reduce((sum, t) => sum + Math.abs(t.pnl), 0) / losingTrades : 0;
-                const profitFactor = avgLoss > 0 ? (avgWin * winningTrades) / (avgLoss * losingTrades) : 0;
+                showEmergencyModal();
+                updateDashboard();
+            }
+        }
+
+        function showEmergencyModal() {
+            document.getElementById('lock-end-time').textContent = new Date(lockEndTime).toLocaleString();
+            document.getElementById('emergency-modal').classList.remove('hidden');
+        }
+
+        function closeEmergencyModal() {
+            document.getElementById('emergency-modal').classList.add('hidden');
+        }
+
+        function checkEmergencyLock() {
+            if (isEmergencyLocked && lockEndTime) {
+                const now = new Date();
+                const lockEnd = new Date(lockEndTime);
                 
-                const recentTrades = trades.slice(-5);
-                let consecutiveLosses = 0;
-                for (let i = recentTrades.length - 1; i >= 0; i--) {
-                    if (recentTrades[i].outcome === 'loss') {
-                        consecutiveLosses++;
-                    } else {
-                        break;
-                    }
+                if (now > lockEnd) {
+                    // Lock expired
+                    isEmergencyLocked = false;
+                    lockEndTime = null;
+                    localStorage.removeItem('mbalotech_emergency_lock');
+                    localStorage.removeItem('mbalotech_lock_end_time');
                 }
-                
-                return { 
-                    totalTrades, 
-                    winningTrades, 
-                    losingTrades, 
-                    winRate, 
-                    totalPnL,
-                    avgWin: avgWin.toFixed(0),
-                    avgLoss: avgLoss.toFixed(0),
-                    profitFactor: profitFactor.toFixed(2),
-                    consecutiveLosses
-                };
-            }, [trades]);
+            }
+        }
 
-            const stats = calculateStats();
-
-            // Emergency stop function
-            const emergencyStop = useCallback((reason) => {
-                const lockUntilTime = new Date(Date.now() + (tradingRules.mandatoryBreakHours * 60 * 60 * 1000));
-                setIsLocked(true);
-                setLockReason(reason);
-                setLockUntil(lockUntilTime);
-                setActiveTrades([]);
-                setPreTradeChecklist({
-                    marketAnalysis: false,
-                    riskAssessment: false,
-                    emotionalCheck: false,
-                    positionSize: false,
-                    exitStrategy: false,
-                    timeAvailable: false,
-                    newsCheck: false,
-                    technicalSetup: false
-                });
-                setCurrentView('dashboard');
-            }, [tradingRules.mandatoryBreakHours]);
-
-            // Check trading rules violations
-            useEffect(() => {
-                if (stats.consecutiveLosses >= tradingRules.maxConsecutiveLosses && !isLocked) {
-                    emergencyStop(`${tradingRules.maxConsecutiveLosses} consecutive losses - mandatory break`);
+        // Data Management Functions
+        function clearAllTrades() {
+            if (confirm('⚠️ Are you sure you want to clear ALL trading data?\n\nThis will permanently delete:\n• All trade records\n• All statistics\n• All history\n\nThis action cannot be undone!')) {
+                if (confirm('🚨 FINAL WARNING: This will delete everything!\n\nType "DELETE" in your mind and click OK if you\'re absolutely sure.')) {
+                    trades = [];
+                    localStorage.removeItem('mbalotech_trades');
+                    updateDashboard();
+                    alert('✅ All trade data has been cleared.');
+                    showView('dashboard');
                 }
-                
-                if (dailyStats.dailyPnL <= -tradingRules.maxDailyLoss && !isLocked) {
-                    emergencyStop(`Daily loss limit reached ($${tradingRules.maxDailyLoss})`);
-                }
-                
-                if (dailyStats.tradesCount >= tradingRules.maxDailyTrades && !isLocked) {
-                    emergencyStop(`Daily trade limit reached (${tradingRules.maxDailyTrades})`);
-                }
-            }, [stats.consecutiveLosses, dailyStats.dailyPnL, dailyStats.tradesCount, tradingRules, isLocked, emergencyStop]);
+            }
+        }
 
-            // Check if lock should be lifted
-            useEffect(() => {
-                if (isLocked && lockUntil && new Date() > new Date(lockUntil)) {
-                    setIsLocked(false);
-                    setLockReason('');
-                    setLockUntil(null);
-                }
-            }, [isLocked, lockUntil]);
+        // Export Functions
+        function exportToCSV() {
+            if (trades.length === 0) {
+                alert('No trades to export!');
+                return;
+            }
 
-            // Pre-Trade Checklist Component
-            const PreTradeChecklistView = () => {
-                const checklistItems = [
-                    { key: 'marketAnalysis', label: 'Market structure and trend analysis completed', critical: true },
-                    { key: 'technicalSetup', label: 'Technical setup confirmed with multiple timeframes', critical: true },
-                    { key: 'riskAssessment', label: 'Risk/reward ratio calculated (minimum 1:2)', critical: true },
-                    { key: 'positionSize', label: 'Position size calculated (max 2% account risk)', critical: true },
-                    { key: 'exitStrategy', label: 'Stop loss and take profit levels defined', critical: true },
-                    { key: 'emotionalCheck', label: 'Emotional state is calm and focused', critical: false },
-                    { key: 'newsCheck', label: 'Economic calendar checked for high-impact news', critical: false },
-                    { key: 'timeAvailable', label: 'Sufficient time available to monitor trade', critical: false }
+            const headers = ['Date', 'Symbol', 'Side', 'Entry Price', 'Exit Price', 'Stop Loss', 'Take Profit', 'Position Size', 'Points', 'P&L', 'Outcome', 'Confidence', 'Notes'];
+            
+            const csvContent = [
+                headers.join(','),
+                ...trades.map(trade => [
+                    new Date(trade.timestamp).toLocaleDateString(),
+                    trade.symbol,
+                    trade.side,
+                    trade.entryPrice,
+                    trade.exitPrice || '',
+                    trade.stopLoss,
+                    trade.takeProfit,
+                    trade.positionSize,
+                    trade.actualPoints || '',
+                    trade.pnl.toFixed(2),
+                    trade.outcome,
+                    trade.confidence || '',
+                    `"${(trade.notes || '').replace(/"/g, '""')}"`
+                ].join(','))
+            ].join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `mbalotech-trades-${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function exportToJSON() {
+            if (trades.length === 0) {
+                alert('No trades to export!');
+                return;
+            }
+
+            const exportData = {
+                exportDate: new Date().toISOString(),
+                totalTrades: trades.length,
+                trades: trades
+            };
+
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `mbalotech-trades-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function exportToGoogleSheets() {
+            if (trades.length === 0) {
+                alert('No trades to export!');
+                return;
+            }
+
+            // Create CSV format for Google Sheets
+            const headers = ['Date', 'Time', 'Symbol', 'Side', 'Entry Price', 'Exit Price', 'Stop Loss', 'Take Profit', 'Position Size', 'Points', 'P&L', 'Outcome', 'Confidence', 'Notes'];
+            
+            const sheetsData = trades.map(trade => {
+                const date = new Date(trade.timestamp);
+                return [
+                    date.toLocaleDateString(),
+                    date.toLocaleTimeString(),
+                    trade.symbol,
+                    trade.side.toUpperCase(),
+                    trade.entryPrice,
+                    trade.exitPrice || '',
+                    trade.stopLoss,
+                    trade.takeProfit,
+                    trade.positionSize,
+                    trade.actualPoints || '',
+                    trade.pnl.toFixed(2),
+                    trade.outcome.toUpperCase(),
+                    trade.confidence || '',
+                    trade.notes || ''
                 ];
+            });
 
-                const criticalItems = checklistItems.filter(item => item.critical);
-                const nonCriticalItems = checklistItems.filter(item => !item.critical);
-                const allCriticalChecked = criticalItems.every(item => preTradeChecklist[item.key]);
+            // Create the CSV content
+            const csvContent = [headers.join(','), ...sheetsData.map(row => row.map(cell => `"${cell}"`).join(','))].join('\n');
+            
+            // Copy to clipboard for easy pasting into Google Sheets
+            navigator.clipboard.writeText(csvContent).then(() => {
+                alert(`📋 Trading data copied to clipboard!\n\nTo import into Google Sheets:\n1. Open Google Sheets\n2. Create a new spreadsheet\n3. Paste (Ctrl+V) the data\n4. Choose "Split text to columns" if prompted\n\nTotal trades: ${trades.length}`);
+            }).catch(() => {
+                // Fallback: download as CSV
+                exportToCSV();
+                alert('📋 Clipboard access denied. Downloaded CSV file instead.\n\nTo import into Google Sheets:\n1. Open Google Sheets\n2. File → Import → Upload\n3. Select the downloaded CSV file');
+            });
+        }
 
-                return React.createElement('div', { className: 'p-6 bg-white rounded-lg shadow-lg' },
-                    React.createElement('div', { className: 'flex items-center justify-between mb-6' },
-                        React.createElement('h2', { className: 'text-2xl font-bold' }, 'Pre-Trade Checklist'),
-                        React.createElement('div', { className: 'text-sm text-gray-500' },
-                            `Critical: ${criticalItems.filter(item => preTradeChecklist[item.key]).length}/${criticalItems.length}`
-                        )
-                    ),
+        function updateDetailedStats() {
+            if (trades.length === 0) {
+                document.getElementById('detailed-stats').innerHTML = '<div class="col-span-2 text-gray-500">No trades yet</div>';
+                return;
+            }
+
+            const totalTrades = trades.length;
+            const winningTrades = trades.filter(t => t.outcome === 'win').length;
+            const losingTrades = trades.filter(t => t.outcome === 'loss').length;
+            const totalPnL = trades.reduce((sum, trade) => sum + (trade.pnl || 0), 0);
+            const winRate = totalTrades > 0 ? (winningTrades / totalTrades * 100).toFixed(1) : 0;
+            
+            const avgWin = winningTrades > 0 ? trades.filter(t => t.outcome === 'win').reduce((sum, t) => sum + t.pnl, 0) / winningTrades : 0;
+            const avgLoss = losingTrades > 0 ? Math.abs(trades.filter(t => t.outcome === 'loss').reduce((sum, t) => sum + t.pnl, 0)) / losingTrades : 0;
+            const profitFactor = avgLoss > 0 ? (avgWin * winningTrades) / (avgLoss * losingTrades) : 0;
+            
+            const bestTrade = trades.reduce((best, trade) => trade.pnl > best.pnl ? trade : best, trades[0]);
+            const worstTrade = trades.reduce((worst, trade) => trade.pnl < worst.pnl ? trade : worst, trades[0]);
+
+            document.getElementById('detailed-stats').innerHTML = `
+                <div><strong>Total P&L:</strong> ${totalPnL.toFixed(2)}</div>
+                <div><strong>Win Rate:</strong> ${winRate}%</div>
+                <div><strong>Avg Win:</strong> ${avgWin.toFixed(2)}</div>
+                <div><strong>Avg Loss:</strong> ${avgLoss.toFixed(2)}</div>
+                <div><strong>Profit Factor:</strong> ${profitFactor.toFixed(2)}</div>
+                <div><strong>Risk/Reward:</strong> ${avgLoss > 0 ? (avgWin/avgLoss).toFixed(2) : 'N/A'}</div>
+                <div><strong>Best Trade:</strong> ${bestTrade.pnl.toFixed(2)}</div>
+                <div><strong>Worst Trade:</strong> ${worstTrade.pnl.toFixed(2)}</div>
+            `;
+        }
+
+        function updateDashboard() {
+            const totalTrades = trades.length;
+            const winningTrades = trades.filter(t => t.outcome === 'win').length;
+            const totalPnL = trades.reduce((sum, trade) => sum + (trade.pnl || 0), 0);
+            const winRate = totalTrades > 0 ? (winningTrades / totalTrades * 100).toFixed(1) : 0;
+
+            document.getElementById('total-trades').textContent = totalTrades;
+            document.getElementById('winning-trades').textContent = winningTrades;
+            document.getElementById('losing-trades').textContent = totalTrades - winningTrades;
+            document.getElementById('win-rate').textContent = `${winRate}%`;
+            document.getElementById('total-pnl').textContent = `${totalPnL.toLocaleString()}`;
+            
+            const progressToGoal = Math.max(0, (totalPnL / 480000 * 100)).toFixed(2);
+            document.getElementById('progress-bar').style.width = `${Math.min(progressToGoal, 100)}%`;
+            document.getElementById('progress-text').textContent = `${progressToGoal}% complete`;
+
+            // Update recent trades
+            if (trades.length > 0) {
+                const recentTradesHtml = trades.slice(-5).reverse().map(trade => `
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded hover:bg-gray-100 transition-colors mb-2">
+                        <div class="flex items-center space-x-3">
+                            <div class="font-medium">${trade.symbol}</div>
+                            <div class="px-2 py-1 rounded text-xs font-medium ${
+                                trade.side === 'long' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            }">${trade.side.toUpperCase()}</div>
+                            <div class="text-sm font-medium ${
+                                trade.outcome === 'win' ? 'text-green-600' : 'text-red-600'
+                            }">${trade.pnl > 0 ? '+' : ''}${trade.pnl.toFixed(2)}</div>
+                            ${trade.actualPoints ? `
+                                <div class="text-xs ${trade.actualPoints > 0 ? 'text-green-500' : 'text-red-500'}">
+                                    ${trade.actualPoints > 0 ? '+' : ''}${trade.actualPoints.toFixed(2)} pts
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div class="text-right">
+                            <div class="font-medium">${typeof trade.entryPrice === 'number' ? trade.entryPrice.toFixed(2) : trade.entryPrice}</div>
+                            <div class="text-xs text-gray-500">
+                                ${new Date(trade.timestamp).toLocaleTimeString()}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                document.getElementById('recent-trades').innerHTML = recentTradesHtml;
+            }
+        }
+
+        // Event listeners
+        function setupEventListeners() {
+            const tradeInputs = ['symbol', 'entryPrice', 'stopLoss', 'takeProfit', 'positionSize', 'exitPrice'];
+            tradeInputs.forEach(inputId => {
+                const input = document.getElementById(inputId);
+                if (input) {
+                    input.addEventListener('input', validateTradeForm);
+                }
+            });
+
+            document.getElementById('side').addEventListener('change', validateTradeForm);
+
+            // Confidence slider
+            const confidenceSlider = document.getElementById('confidence');
+            const confidenceValue = document.getElementById('confidence-value');
+            confidenceSlider.addEventListener('input', () => {
+                confidenceValue.textContent = confidenceSlider.value;
+            });
+
+            // Checklist validation
+            document.querySelectorAll('.critical-item').forEach(item => {
+                item.addEventListener('change', () => {
+                    const allChecked = Array.from(document.querySelectorAll('.critical-item')).every(cb => cb.checked);
+                    const proceedBtn = document.getElementById('proceed-btn');
                     
-                    React.createElement('div', { className: 'space-y-6' },
-                        React.createElement('div', null,
-                            React.createElement('h3', { className: 'font-semibold text-red-600 mb-3 flex items-center' },
-                                React.createElement(AlertTriangle, { className: 'w-4 h-4 mr-1' }),
-                                'Critical Items (Required)'
-                            ),
-                            React.createElement('div', { className: 'space-y-3' },
-                                criticalItems.map(item => 
-                                    React.createElement('div', { key: item.key, className: 'flex items-center space-x-3' },
-                                        React.createElement('input', {
-                                            type: 'checkbox',
-                                            checked: preTradeChecklist[item.key],
-                                            onChange: (e) => handleChecklistChange(item.key, e.target.checked),
-                                            className: 'w-5 h-5 text-red-600'
-                                        }),
-                                        React.createElement('label', { className: 'text-gray-700' }, item.label)
-                                    )
-                                )
-                            )
-                        ),
+                    if (allChecked) {
+                        proceedBtn.textContent = 'Proceed to Trade Entry';
+                        proceedBtn.className = 'flex-1 py-3 px-4 rounded-lg font-medium transition-colors bg-green-600 text-white hover:bg-green-700';
+                        proceedBtn.disabled = false;
+                    } else {
+                        const unchecked = Array.from(document.querySelectorAll('.critical-item')).filter(cb => !cb.checked).length;
+                        proceedBtn.textContent = `Complete ${unchecked} Critical Items`;
+                        proceedBtn.className = 'flex-1 py-3 px-4 rounded-lg font-medium transition-colors bg-gray-300 text-gray-500 cursor-not-allowed';
+                        proceedBtn.disabled = true;
+                    }
+                });
+            });
+        }
 
-                        React.createElement('div', null,
-                            React.createElement('h3', { className: 'font-semibold text-blue-600 mb-3' }, 'Optional Items'),
-                            React.createElement('div', { className: 'space-y-3' },
-                                nonCriticalItems.map(item => 
-                                    React.createElement('div', { key: item.key, className: 'flex items-center space-x-3' },
-                                        React.createElement('input', {
-                                            type: 'checkbox',
-                                            checked: preTradeChecklist[item.key],
-                                            onChange: (e) => handleChecklistChange(item.key, e.target.checked),
-                                            className: 'w-5 h-5 text-blue-600'
-                                        }),
-                                        React.createElement('label', { className: 'text-gray-700' }, item.label)
-                                    )
-                                )
-                            )
-                        )
-                    ),
+        // Initialize app immediately
+        updateDateTime();
+        updateDashboard();
+        setupEventListeners();
+        checkEmergencyLock();
+        setInterval(() => {
+            updateDateTime();
+            checkEmergencyLock();
+        }, 60000);
 
-                    React.createElement('div', { className: 'mt-8 flex gap-4' },
-                        React.createElement('button', {
-                            onClick: () => setCurrentView('dashboard'),
-                            className: 'flex-1 bg-gray-500 text-white py-3 px-4 rounded-lg font-medium hover:bg-gray-600 transition-colors'
-                        }, 'Cancel'),
-                        React.createElement('button', {
-                            onClick: () => allCriticalChecked ? setCurrentView('trade-entry') : null,
-                            disabled: !allCriticalChecked,
-                            className: `flex-1 py-3 px-4 rounded-lg font-medium transition-colors ${
-                                allCriticalChecked 
-                                    ? 'bg-green-600 text-white hover:bg-green-700' 
-                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                            }`
-                        }, allCriticalChecked ? 'Proceed to Trade Entry' : 'Complete Critical Items')
-                    )
-                );
-            };
-
-            // Trade Entry Component
-            const TradeEntryView = () => {
-                const isValidTrade = currentTrade.symbol && 
-                    currentTrade.entryPrice && 
-                    currentTrade.stopLoss && 
-                    currentTrade.takeProfit && 
-                    currentTrade.positionSize &&
-                    currentTrade.riskRewardRatio >= 1.5;
-
-                const submitTrade = () => {
-                    if (!isValidTrade) return;
-                    
-                    const newTrade = {
-                        id: Date.now(),
-                        ...currentTrade,
-                        timestamp: new Date().toISOString(),
-                        status: 'active'
-                    };
-                    
-                    setActiveTrades(prev => [...prev, newTrade]);
-                    
-                    // Simulate trade outcome
-                    setTimeout(() => {
-                        const outcome = Math.random() > 0.4 ? 'win' : 'loss';
-                        const pnl = outcome === 'win' ? 
-                            Math.random() * 800 + 200 : 
-                            -(Math.random() * 400 + 100);
-                        
-                        const closedTrade = {
-                            ...newTrade,
-                            status: 'closed',
-                            outcome,
-                            pnl,
-                            exitPrice: outcome === 'win' ? newTrade.takeProfit : newTrade.stopLoss,
-                            exitTime: new Date().toISOString(),
-                            duration: Math.floor(Math.random() * 120 + 30)
-                        };
-                        
-                        setTrades(prev => [...prev, closedTrade]);
-                        setActiveTrades(prev => prev.filter(t => t.id !== newTrade.id));
-                        
-                        setDailyStats(prev => ({
-                            ...prev,
-                            tradesCount: prev.tradesCount + 1,
-                            dailyPnL: prev.dailyPnL + pnl
-                        }));
-                    }, Math.random() * 10000 + 5000);
-                    
-                    // Reset forms
-                    setCurrentTrade({
-                        id: null, symbol: '', side: 'long', entryPrice: '', stopLoss: '',
-                        takeProfit: '', positionSize: '', timeframe: '1h', setup: 'breakout',
-                        confidence: 3, emotionalState: 'calm', marketCondition: 'trending',
-                        notes: '', riskRewardRatio: 0, riskAmount: 0, potentialReward: 0
-                    });
-                    
-                    setPreTradeChecklist({
-                        marketAnalysis: false, riskAssessment: false, emotionalCheck: false,
-                        positionSize: false, exitStrategy: false, timeAvailable: false,
-                        newsCheck: false, technicalSetup: false
-                    });
-                    
-                    setCurrentView('dashboard');
-                };
-
-                return React.createElement('div', { className: 'p-6 bg-white rounded-lg shadow-lg' },
-                    React.createElement('div', { className: 'flex items-center justify-between mb-6' },
-                        React.createElement('h2', { className: 'text-2xl font-bold' }, 'Trade Entry'),
-                        React.createElement('div', { 
-                            className: `px-3 py-1 rounded-full text-sm font-medium ${
-                                isValidTrade ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                            }`
-                        }, isValidTrade ? 'Valid Setup' : 'Incomplete')
-                    ),
-                    
-                    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4 mb-6' },
-                        React.createElement('div', null,
-                            React.createElement('label', { className: 'block text-sm font-medium mb-1' }, 'Symbol *'),
-                            React.createElement('input', {
-                                type: 'text',
-                                value: currentTrade.symbol,
-                                onChange: (e) => handleTradeInputChange('symbol', e.target.value.toUpperCase()),
-                                className: 'w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-                                placeholder: 'EURUSD',
-                                autoComplete: 'off'
-                            })
-                        ),
-                        
-                        React.createElement('div', null,
-                            React.createElement('label', { className: 'block text-sm font-medium mb-1' }, 'Direction *'),
-                            React.createElement('select', {
-                                value: currentTrade.side,
-                                onChange: (e) => handleTradeInputChange('side', e.target.value),
-                                className: 'w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-                            },
-                                React.createElement('option', { value: 'long' }, 'Long (Buy)'),
-                                React.createElement('option', { value: 'short' }, 'Short (Sell)')
-                            )
-                        ),
-                        
-                        React.createElement('div', null,
-                            React.createElement('label', { className: 'block text-sm font-medium mb-1' }, 'Entry Price *'),
-                            React.createElement('input', {
-                                type: 'text',
-                                inputMode: 'decimal',
-                                value: currentTrade.entryPrice,
-                                onChange: (e) => handleTradeInputChange('entryPrice', e.target.value),
-                                className: 'w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-                                placeholder: '1.08500',
-                                autoComplete: 'off'
-                            })
-                        ),
-                        
-                        React.createElement('div', null,
-                            React.createElement('label', { className: 'block text-sm font-medium mb-1' }, 'Stop Loss *'),
-                            React.createElement('input', {
-                                type: 'text',
-                                inputMode: 'decimal',
-                                value: currentTrade.stopLoss,
-                                onChange: (e) => handleTradeInputChange('stopLoss', e.target.value),
-                                className: 'w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-                                placeholder: '1.08000',
-                                autoComplete: 'off'
-                            })
-                        ),
-                        
-                        React.createElement('div', null,
-                            React.createElement('label', { className: 'block text-sm font-medium mb-1' }, 'Take Profit *'),
-                            React.createElement('input', {
-                                type: 'text',
-                                inputMode: 'decimal',
-                                value: currentTrade.takeProfit,
-                                onChange: (e) => handleTradeInputChange('takeProfit', e.target.value),
-                                className: 'w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-                                placeholder: '1.09500',
-                                autoComplete: 'off'
-                            })
-                        ),
-                        
-                        React.createElement('div', null,
-                            React.createElement('label', { className: 'block text-sm font-medium mb-1' }, 'Position Size (lots) *'),
-                            React.createElement('input', {
-                                type: 'text',
-                                inputMode: 'decimal',
-                                value: currentTrade.positionSize,
-                                onChange: (e) => handleTradeInputChange('positionSize', e.target.value),
-                                className: 'w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-                                placeholder: '0.01',
-                                autoComplete: 'off'
-                            }),
-                            React.createElement('div', { className: 'text-xs text-gray-500 mt-1' },
-                                `Max: ${tradingRules.maxPositionSize} lots`
-                            )
-                        ),
-
-                        React.createElement('div', null,
-                            React.createElement('label', { className: 'block text-sm font-medium mb-1' }, 'Timeframe'),
-                            React.createElement('select', {
-                                value: currentTrade.timeframe,
-                                onChange: (e) => handleTradeInputChange('timeframe', e.target.value),
-                                className: 'w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-                            },
-                                React.createElement('option', { value: '1m' }, '1 Minute'),
-                                React.createElement('option', { value: '5m' }, '5 Minutes'),
-                                React.createElement('option', { value: '15m' }, '15 Minutes'),
-                                React.createElement('option', { value: '1h' }, '1 Hour'),
-                                React.createElement('option', { value: '4h' }, '4 Hours'),
-                                React.createElement('option', { value: '1d' }, '1 Day')
-                            )
-                        ),
-                        
-                        React.createElement('div', null,
-                            React.createElement('label', { className: 'block text-sm font-medium mb-1' }, 'Setup Type'),
-                            React.createElement('select', {
-                                value: currentTrade.setup,
-                                onChange: (e) => handleTradeInputChange('setup', e.target.value),
-                                className: 'w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-                            },
-                                React.createElement('option', { value: 'breakout' }, 'Breakout'),
-                                React.createElement('option', { value: 'reversal' }, 'Reversal'),
-                                React.createElement('option', { value: 'continuation' }, 'Continuation'),
-                                React.createElement('option', { value: 'scalp' }, 'Scalp'),
-                                React.createElement('option', { value: 'swing' }, 'Swing Trade'),
-                                React.createElement('option', { value: 'pullback' }, 'Pullback')
-                            )
-                        )
-                    ),
-
-                    currentTrade.riskRewardRatio > 0 && React.createElement('div', { className: 'bg-gray-50 p-4 rounded-lg mb-6' },
-                        React.createElement('h3', { className: 'font-semibold mb-3' }, 'Risk Assessment'),
-                        React.createElement('div', { className: 'grid grid-cols-3 gap-4 text-center' },
-                            React.createElement('div', null,
-                                React.createElement('div', { className: 'text-lg font-bold text-red-600' }, 
-                                    `${currentTrade.riskAmount.toFixed(0)}`
-                                ),
-                                React.createElement('div', { className: 'text-sm text-gray-600' }, 'Risk Amount')
-                            ),
-                            React.createElement('div', null,
-                                React.createElement('div', { className: 'text-lg font-bold text-green-600' }, 
-                                    `${currentTrade.potentialReward.toFixed(0)}`
-                                ),
-                                React.createElement('div', { className: 'text-sm text-gray-600' }, 'Potential Reward')
-                            ),
-                            React.createElement('div', null,
-                                React.createElement('div', { 
-                                    className: `text-lg font-bold ${
-                                        currentTrade.riskRewardRatio >= 2 ? 'text-green-600' : 
-                                        currentTrade.riskRewardRatio >= 1.5 ? 'text-yellow-600' : 'text-red-600'
-                                    }`
-                                }, `1:${currentTrade.riskRewardRatio.toFixed(1)}`),
-                                React.createElement('div', { className: 'text-sm text-gray-600' }, 'Risk:Reward')
-                            )
-                        )
-                    ),
-
-                    React.createElement('div', { className: 'space-y-4 mb-6' },
-                        React.createElement('div', null,
-                            React.createElement('label', { className: 'block text-sm font-medium mb-1' },
-                                `Confidence Level: ${currentTrade.confidence}/5`
-                            ),
-                            React.createElement('input', {
-                                type: 'range',
-                                min: '1',
-                                max: '5',
-                                value: currentTrade.confidence,
-                                onChange: (e) => handleTradeInputChange('confidence', parseInt(e.target.value)),
-                                className: 'w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer'
-                            }),
-                            React.createElement('div', { className: 'flex justify-between text-xs text-gray-500 mt-1' },
-                                React.createElement('span', null, 'Very Low'),
-                                React.createElement('span', null, 'Low'),
-                                React.createElement('span', null, 'Medium'),
-                                React.createElement('span', null, 'High'),
-                                React.createElement('span', null, 'Very High')
-                            )
-                        ),
-
-                        React.createElement('div', null,
-                            React.createElement('label', { className: 'block text-sm font-medium mb-1' }, 'Trade Notes'),
-                            React.createElement('textarea', {
-                                value: currentTrade.notes,
-                                onChange: (e) => handleTradeInputChange('notes', e.target.value),
-                                className: 'w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-                                rows: '3',
-                                placeholder: 'Why are you taking this trade? What\'s your analysis?'
-                            })
-                        )
-                    ),
-
-                    React.createElement('div', { className: 'flex gap-4' },
-                        React.createElement('button', {
-                            onClick: () => setCurrentView('checklist'),
-                            className: 'flex-1 bg-gray-500 text-white py-3 px-4 rounded-lg font-medium hover:bg-gray-600 transition-colors'
-                        }, 'Back to Checklist'),
-                        React.createElement('button', {
-                            onClick: submitTrade,
-                            disabled: !isValidTrade,
-                            className: `flex-1 py-3 px-4 rounded-lg font-medium transition-colors ${
-                                isValidTrade
-                                    ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                            }`
-                        }, isValidTrade ? 'Enter Trade' : 'Complete Required Fields')
-                    )
-                );
-            };
-
-            // Dashboard Component
-            const DashboardView = () => {
-                const progressToGoal = Math.max(0, (stats.totalPnL / 480000 * 100)).toFixed(1);
-                
-                return React.createElement('div', { className: 'space-y-6' },
-                    // Lock Status
-                    isLocked && React.createElement('div', { className: 'bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg' },
-                        React.createElement('div', { className: 'flex items-center justify-between' },
-                            React.createElement('div', { className: 'flex items-center' },
-                                React.createElement(Lock, { className: 'w-5 h-5 mr-2' }),
-                                React.createElement('span', { className: 'font-medium' }, 'Trading Suspended')
-                            ),
-                            lockUntil && React.createElement('div', { className: 'text-sm' },
-                                `Until: ${new Date(lockUntil).toLocaleString()}`
-                            )
-                        ),
-                        React.createElement('div', { className: 'mt-1 text-sm' }, lockReason)
-                    ),
-
-                    // Active Trades
-                    activeTrades.length > 0 && React.createElement('div', { className: 'bg-blue-50 border border-blue-200 rounded-lg p-4' },
-                        React.createElement('div', { className: 'flex items-center justify-between mb-3' },
-                            React.createElement('h3', { className: 'font-semibold text-blue-900' }, 'Active Trades'),
-                            React.createElement('div', { className: 'text-sm text-blue-700' }, 
-                                `${activeTrades.length} position${activeTrades.length !== 1 ? 's' : ''}`
-                            )
-                        ),
-                        React.createElement('div', { className: 'space-y-2' },
-                            activeTrades.map(trade => 
-                                React.createElement('div', { key: trade.id, className: 'bg-white p-3 rounded border flex items-center justify-between' },
-                                    React.createElement('div', { className: 'flex items-center space-x-3' },
-                                        React.createElement('div', { className: 'font-medium' }, trade.symbol),
-                                        React.createElement('div', { 
-                                            className: `px-2 py-1 rounded text-xs font-medium ${
-                                                trade.side === 'long' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                            }`
-                                        }, trade.side.toUpperCase()),
-                                        React.createElement('div', { className: 'text-sm text-gray-600' }, trade.setup)
-                                    ),
-                                    React.createElement('div', { className: 'text-right' },
-                                        React.createElement('div', { className: 'text-sm font-medium' }, trade.entryPrice),
-                                        React.createElement('div', { className: 'text-xs text-gray-500' }, 
-                                            `SL: ${trade.stopLoss} | TP: ${trade.takeProfit}`
-                                        )
-                                    )
-                                )
-                            )
-                        )
-                    ),
-
-                    // Goal Progress
-                    React.createElement('div', { className: 'bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-lg' },
-                        React.createElement('div', { className: 'flex items-center justify-between mb-2' },
-                            React.createElement('h3', { className: 'text-lg font-semibold' }, 'Annual Goal Progress'),
-                            React.createElement(Target, { className: 'w-6 h-6' })
-                        ),
-                        React.createElement('div', { className: 'text-3xl font-bold mb-1' }, 
-                            `${stats.totalPnL.toLocaleString()}`
-                        ),
-                        React.createElement('div', { className: 'text-sm opacity-90' }, 
-                            `Target: $480,000 | Remaining: ${(480000 - stats.totalPnL).toLocaleString()}`
-                        ),
-                        React.createElement('div', { className: 'w-full bg-white bg-opacity-20 rounded-full h-3 mt-3' },
-                            React.createElement('div', { 
-                                className: 'bg-white h-3 rounded-full transition-all duration-500',
-                                style: { width: `${Math.min(progressToGoal, 100)}%` }
-                            })
-                        ),
-                        React.createElement('div', { className: 'text-sm mt-2' }, `${progressToGoal}% complete`)
-                    ),
-
-                    // Stats Grid
-                    React.createElement('div', { className: 'grid grid-cols-2 lg:grid-cols-4 gap-4' },
-                        React.createElement('div', { className: 'bg-white p-4 rounded-lg shadow' },
-                            React.createElement('div', { className: 'flex items-center justify-between' },
-                                React.createElement('div', null,
-                                    React.createElement('div', { className: 'text-2xl font-bold' }, stats.totalTrades),
-                                    React.createElement('div', { className: 'text-sm text-gray-600' }, 'Total Trades')
-                                ),
-                                React.createElement(BarChart3, { className: 'w-8 h-8 text-blue-500' })
-                            )
-                        ),
-                        
-                        React.createElement('div', { className: 'bg-white p-4 rounded-lg shadow' },
-                            React.createElement('div', { className: 'flex items-center justify-between' },
-                                React.createElement('div', null,
-                                    React.createElement('div', { className: 'text-2xl font-bold text-green-600' }, `${stats.winRate}%`),
-                                    React.createElement('div', { className: 'text-sm text-gray-600' }, 'Win Rate')
-                                ),
-                                React.createElement(TrendingUp, { className: 'w-8 h-8 text-green-500' })
-                            )
-                        ),
-                        
-                        React.createElement('div', { className: 'bg-white p-4 rounded-lg shadow' },
-                            React.createElement('div', { className: 'flex items-center justify-between' },
-                                React.createElement('div', null,
-                                    React.createElement('div', { className: 'text-2xl font-bold text-blue-600' }, stats.profitFactor),
-                                    React.createElement('div', { className: 'text-sm text-gray-600' }, 'Profit Factor')
-                                ),
-                                React.createElement(Activity, { className: 'w-8 h-8 text-blue-500' })
-                            )
-                        ),
-                        
-                        React.createElement('div', { className: 'bg-white p-4 rounded-lg shadow' },
-                            React.createElement('div', { className: 'flex items-center justify-between' },
-                                React.createElement('div', null,
-                                    React.createElement('div', { 
-                                        className: `text-2xl font-bold ${stats.consecutiveLosses >= 2 ? 'text-red-600' : 'text-green-600'}`
-                                    }, stats.consecutiveLosses),
-                                    React.createElement('div', { className: 'text-sm text-gray-600' }, 'Consecutive Losses')
-                                ),
-                                stats.consecutiveLosses >= 2 ? 
-                                    React.createElement(XCircle, { className: 'w-8 h-8 text-red-500' }) : 
-                                    React.createElement(CheckCircle, { className: 'w-8 h-8 text-green-500' })
-                            )
-                        )
-                    ),
-
-                    // Recent Trades
-                    React.createElement('div', { className: 'bg-white rounded-lg shadow' },
-                        React.createElement('div', { className: 'p-4 border-b' },
-                            React.createElement('h3', { className: 'text-lg font-semibold' }, 'Recent Trades')
-                        ),
-                        React.createElement('div', { className: 'p-4' },
-                            trades.length === 0 ? 
-                                React.createElement('div', { className: 'text-center text-gray-500 py-8' },
-                                    React.createElement(BarChart3, { className: 'w-12 h-12 mx-auto mb-3 opacity-50' }),
-                                    React.createElement('div', { className: 'text-lg font-medium mb-1' }, 'No trades yet'),
-                                    React.createElement('div', { className: 'text-sm' }, 'Complete the pre-trade checklist to start trading!')
-                                ) :
-                                React.createElement('div', { className: 'space-y-3' },
-                                    trades.slice(-5).reverse().map(trade => 
-                                        React.createElement('div', { 
-                                            key: trade.id, 
-                                            className: 'flex items-center justify-between p-3 bg-gray-50 rounded hover:bg-gray-100 transition-colors' 
-                                        },
-                                            React.createElement('div', { className: 'flex items-center space-x-3' },
-                                                React.createElement('div', { className: 'font-medium' }, trade.symbol),
-                                                React.createElement('div', { 
-                                                    className: `px-2 py-1 rounded text-xs font-medium ${
-                                                        trade.side === 'long' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                                    }`
-                                                }, trade.side.toUpperCase()),
-                                                React.createElement('div', { className: 'text-sm text-gray-600' }, trade.setup),
-                                                React.createElement('div', { 
-                                                    className: `text-sm font-medium ${
-                                                        trade.outcome === 'win' ? 'text-green-600' : 'text-red-600'
-                                                    }`
-                                                }, `${trade.pnl > 0 ? '+' : ''}${trade.pnl.toFixed(0)}`)
-                                            ),
-                                            React.createElement('div', { className: 'text-right' },
-                                                React.createElement('div', { className: 'font-medium' }, trade.entryPrice),
-                                                React.createElement('div', { className: 'text-xs text-gray-500' },
-                                                    new Date(trade.timestamp).toLocaleTimeString()
-                                                )
-                                            )
-                                        )
-                                    )
-                                )
-                        )
-                    )
-                );
-            };
-
-            return React.createElement('div', { className: 'min-h-screen bg-gray-100' },
-                // Header
-                React.createElement('div', { className: 'bg-white shadow-sm border-b' },
-                    React.createElement('div', { className: 'max-w-6xl mx-auto px-4 py-4' },
-                        React.createElement('div', { className: 'flex items-center justify-between' },
-                            React.createElement('div', { className: 'flex items-center space-x-3' },
-                                React.createElement(Target, { className: 'w-8 h-8 text-blue-600' }),
-                                React.createElement('div', null,
-                                    React.createElement('h1', { className: 'text-2xl font-bold text-gray-900' }, 'MbaloTech Trading'),
-                                    React.createElement('div', { className: 'text-sm text-gray-500' }, 'Professional Trading Assistant')
-                                )
-                            ),
-                            React.createElement('div', { className: 'text-right' },
-                                React.createElement('div', { className: 'text-sm text-gray-600' },
-                                    new Date().toLocaleDateString('en-US', { 
-                                        weekday: 'long', 
-                                        year: 'numeric', 
-                                        month: 'long', 
-                                        day: 'numeric' 
-                                    })
-                                ),
-                                React.createElement('div', { className: 'text-xs text-gray-500 flex items-center justify-end' },
-                                    React.createElement(Clock, { className: 'w-3 h-3 mr-1' }),
-                                    new Date().toLocaleTimeString()
-                                )
-                            )
-                        )
-                    )
-                ),
-
-                // Navigation
-                React.createElement('div', { className: 'max-w-6xl mx-auto px-4 py-4' },
-                    React.createElement('div', { className: 'flex flex-wrap gap-4 mb-6' },
-                        React.createElement('button', {
-                            onClick: () => setCurrentView('dashboard'),
-                            className: `px-4 py-2 rounded-lg font-medium transition-colors ${
-                                currentView === 'dashboard' 
-                                    ? 'bg-blue-600 text-white' 
-                                    : 'bg-white text-gray-700 hover:bg-gray-50'
-                            }`
-                        }, 'Dashboard'),
-                        React.createElement('button', {
-                            onClick: () => setCurrentView('checklist'),
-                            disabled: isLocked,
-                            className: `px-4 py-2 rounded-lg font-medium transition-colors ${
-                                currentView === 'checklist' 
-                                    ? 'bg-blue-600 text-white' 
-                                    : isLocked 
-                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                        : 'bg-white text-gray-700 hover:bg-gray-50'
-                            }`
-                        }, 
-                            React.createElement(Plus, { className: 'w-4 h-4 inline mr-1' }),
-                            'New Trade'
-                        ),
-                        React.createElement('button', {
-                            onClick: () => emergencyStop('Manual emergency stop activated'),
-                            disabled: isLocked,
-                            className: 'px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed'
-                        },
-                            React.createElement(AlertTriangle, { className: 'w-4 h-4 inline mr-1' }),
-                            'Emergency Stop'
-                        )
-                    ),
-
-                    // Main Content
-                    React.createElement('div', { className: 'max-w-5xl mx-auto' },
-                        currentView === 'dashboard' && React.createElement(DashboardView),
-                        currentView === 'checklist' && React.createElement(PreTradeChecklistView),
-                        currentView === 'trade-entry' && React.createElement(TradeEntryView)
-                    )
-                )
-            );
+        // Update detailed stats when settings view is shown
+        const originalShowView = showView;
+        showView = function(viewName) {
+            originalShowView(viewName);
+            if (viewName === 'settings') {
+                updateDetailedStats();
+            }
         };
 
-        // Initialize app after page loads
-        window.addEventListener('load', () => {
-            // Hide loading screen
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('root').style.display = 'block';
-            
-            // Render app
-            ReactDOM.render(React.createElement(MbaloTechTradingApp), document.getElementById('root'));
-        });
+        console.log('MbaloTech Trading App loaded successfully!');
     </script>
 </body>
 </html>
